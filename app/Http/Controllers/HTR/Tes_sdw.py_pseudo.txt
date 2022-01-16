@@ -1,0 +1,27 @@
+IMPORT cv2
+
+IMPORT numpy as np
+
+from skimage IMPORT io, morphology, color, img_as_float, segmentation
+
+from scipy IMPORT ndimage as ndi
+
+IMPORT matplotlib.pyplot as plt
+
+
+
+
+SET img TO cv2.imread(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png')
+
+SET eroded_img TO cv2.erode(img, np.ones((7,7), np.uint8)) 
+
+SET bg_img TO cv2.medianBlur(eroded_img, 299)
+
+cv2.imwrite(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\ero.png', eroded_img)
+
+cv2.imwrite(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\bg.png', bg_img)
+
+SET diff_img TO 255 - cv2.absdiff(eroded_img, bg_img)
+
+
+cv2.imwrite(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png', diff_img)

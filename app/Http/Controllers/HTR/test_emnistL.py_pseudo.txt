@@ -1,0 +1,175 @@
+IMPORT os
+from cv2 IMPORT cv2
+IMPORT random
+IMPORT numpy as np
+IMPORT pandas as pd
+IMPORT matplotlib.pyplot as plt
+IMPORT h5py
+IMPORT glob
+from PIL IMPORT Image
+
+IMPORT tensorflow as tf
+from keras IMPORT backend as K
+from keras.models IMPORT Model
+from keras.layers IMPORT Input, Conv2D, MaxPooling2D, Reshape, Bidirectional, LSTM, Dense, Lambda, Activation, BatchNormalization, Dropout
+from keras.optimizers IMPORT Adam
+from keras.models IMPORT load_model
+from keras.preprocessing IMPORT image
+
+IMPORT string
+from collections IMPORT defaultdict
+from collections IMPORT Counter 
+from scipy.ndimage IMPORT interpolation as inter
+
+from fuzzywuzzy IMPORT fuzz
+from fuzzywuzzy IMPORT process
+from Levenshtein IMPORT distance
+
+IMPORT sys, io
+IMPORT datetime
+
+
+
+
+DEFINE FUNCTION possible_wordsL(lwords, charSet): 
+    SET guessed TO list()
+    SET scale1 TO len(charSet)
+    scale2= 0
+    SET scale3 TO 0
+    FOR word IN lwords: 
+        SET scale2 TO distance(word,charSet)
+        IF len(word)>len(charSet) : 
+            SET scale2 TO distance(word[0:len(charSet)-1],charSet)
+        IF scale2 <= scale1 :
+               SET scale1 TO scale2
+    FOR word IN lwords: 
+        SET scale3 TO distance(word,charSet)
+        IF len(word)>len(charSet) : 
+            SET scale3 TO distance(word[0:len(charSet)-1],charSet)
+        IF scale3 EQUALS scale1 :
+                guessed.append(word)
+    SET guessed TO '\n'.join(guessed)
+    SET br0 TO r'<pre style="font-size: 24px; font-weight: bold;">'
+    SET br1 TO r'<pre style="font-size: 24px; font-weight: bold; height: 10pc; overflow-y: scroll;">'
+    SET br2 TO r'</pre>'
+    OUTPUT(br0+" Possible strings : \n"+br2)
+    OUTPUT(br1,guessed,br2)
+        
+       
+
+  
+
+IF __name__ EQUALS "__main__": 
+
+
+    SET characters TO [ 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K',
+                    'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+                    ,'a','b','d','e','f','g','h','n','q','r','t']
+
+
+    # enter INPUT image here
+    SET img TO cv2.imread(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png')
+    SET image TO cv2.medianBlur(img,7)
+    SET height, width, depth TO image.shape
+
+    # resizing the image to find spaces better
+    SET image TO cv2.resize(image, dsize=(width * 5, height * 4), interpolation=cv2.INTER_CUBIC)
+    # grayscale
+    SET gray TO cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # binary
+    SET ret, thresh TO cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+    #compute a bit-wise inversion so black becomes white and vice versa
+    # dilation
+    SET kernel TO np.ones((1, 1), np.uint8)
+    SET img_dilation TO cv2.dilate(thresh, kernel, iterations=1)
+    # adding GaussianBlur
+    SET gsblur TO cv2.GaussianBlur(img_dilation, (5, 5), 0)
+
+
+    # find contours
+    SET ctrs, hier TO cv2.findContours(gsblur.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    SET m TO list()
+
+    # sort contours
+    SET sorted_ctrs TO sorted(ctrs, key=lambda ctr: cv2.boundingRect(ctr)[0])
+    SET pchl TO list()
+    SET dp TO image.copy()
+    FOR i, ctr IN enumerate(sorted_ctrs):
+        # Get bounding box
+        SET area TO cv2.contourArea(ctr)
+        SET x, y, w, h TO cv2.boundingRect(ctr)
+        SET cx TO x+w//2
+        SET cy TO y+h//2
+        SET cr  TO max(w,h)//2
+        SET r TO cr+10
+        cv2.rectangle(dp, (cx-r, cy-r), (cx+r, cy+r), (90, 0, 255), 9)
+
+    plt.imshow(dp)
+    plt.savefig(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png', bbox_inches='tight')
+
+
+
+    # Recreate the exact same model, including its weights and the optimizer
+    from keras.models IMPORT load_model
+    from keras.models IMPORT model_from_json
+
+    SET json_file TO open(r'\Users\MuktiAS\SKRIPSI\UI\bismillahUI\app\Http\Controllers\HTR\tesub.json')
+    SET loaded_model_json TO json_file.read()
+    json_file.close()
+    SET loaded_model TO model_from_json(loaded_model_json)
+    loaded_model.load_weights(r'\Users\MuktiAS\SKRIPSI\UI\bismillahUI\app\Http\Controllers\HTR\tesub.h5')
+
+    SET model TO loaded_model
+
+
+    FOR i, ctr IN enumerate(sorted_ctrs):
+
+        # Get bounding box
+
+        SET area TO cv2.contourArea(ctr)
+        SET x, y, w, h TO cv2.boundingRect(ctr)
+        SET cx TO x+w//2
+        SET cy TO y+h//2
+        SET cr  TO max(w,h)//2
+        SET r TO cr+10
+        # Getting ROI
+        SET roi TO image[(1 if(cy-r) <= 0 else (cy-r)):cy+r, (1 if(cx-r) <= 0 else (cx-r)):cx+r]
+        SET roi TO cv2.resize(roi, dsize=(28, 28), interpolation=cv2.INTER_CUBIC)
+        SET roi TO cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        SET roi1 TO cv2.bitwise_not(roi)
+        SET path TO 'C:/Users/MuktiAS/SKRIPSI/UI/bismillahUI/public_html/kontur/'
+        SET nama TO datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S-%f")
+        cv2.imwrite(os.path.join(path , nama+'.png'), roi1)
+
+
+        SET roi TO np.array(roi)
+        SET t TO np.copy(roi)
+        SET t TO t / 255.0
+        SET t TO 1 - t
+        SET t TO t.reshape(1, 28,28)
+        m.append(roi)
+        SET pred TO np.argmax(model.predict(t.round()), axis=-1)
+        pchl.append(pred)
+
+
+    SET pcw TO list()
+    SET interp TO 'bilinear'
+
+    FOR i IN range(len(pchl)):
+        pcw.append(characters[pchl[i][0]])
+
+
+    SET predstring TO ''.join(pcw)
+    OUTPUT('Identified String: ' + predstring )
+    OUTPUT('\n')
+
+    SET tebak TO list(predstring)
+    OUTPUT('\n')
+
+
+    with open(r'\Users\MuktiAS\SKRIPSI\UI\bismillahUI\app\Http\Controllers\HTR\all_medicine_names.txt') as f:
+        SET INPUT TO [line.strip() FOR line IN f]
+   
+
+    possible_wordsL(INPUT, predstring)

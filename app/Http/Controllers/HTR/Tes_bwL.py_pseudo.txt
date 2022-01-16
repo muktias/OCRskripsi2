@@ -1,0 +1,63 @@
+from PIL IMPORT Image, ImageEnhance 
+
+from cv2 IMPORT cv2
+
+IMPORT skimage.filters
+
+IMPORT skimage.color
+
+IMPORT skimage.io
+
+IMPORT matplotlib.pyplot as plt
+
+
+
+SET img TO Image.open(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png')
+
+SET panjang TO img.width
+
+SET tinggi TO img.height
+
+
+
+IF img.height>img.width :
+
+    SET img TO img.rotate(90, expand=True)
+
+    SET img TO img.resize((tinggi, panjang), Image.ANTIALIAS)
+
+
+
+SET image TO skimage.io.imread(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png')
+
+SET blur TO skimage.color.rgb2gray(image)
+
+
+SET t TO skimage.filters.threshold_otsu(blur)
+
+SET t TO round(t*255)
+
+SET OUTPUT('Threshold TO ' , t)
+
+
+SET thresh TO t
+
+SET fn TO lambda x : 255 IF x > thresh else 0
+
+SET gambar TO img.convert('L').point(fn, mode='1')
+
+
+IF gambar.width>1080 :
+
+    SET ratio TO 1080/gambar.width
+
+    SET h TO round(gambar.height*ratio)
+
+    SET gambar TO gambar.resize((1080, h))
+
+
+
+gambar.save(r'C:\Users\MuktiAS\SKRIPSI\UI\bismillahUI\public_html\obat\obat.png')
+
+
+
